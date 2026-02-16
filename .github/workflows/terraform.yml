@@ -1,28 +1,36 @@
 
-name: Terraform Apply
+name: Terraform Apply (Azure)
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]   # runs only when code reaches main (after PR merge)
 
 jobs:
-  deploy:
+  apply:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Azure (using your secret)
+        uses: azure/login@v2
+        with:
+          creds: ${{ AZURE_CREDENTIALS }}  # you added this in Secrets
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "4.50.0"   # use any recent version you prefer
 
       - name: Terraform Init
-        run: terraform init
+        working-directory: .
+        run: terraform init -input=false
 
       - name: Terraform Apply
-        env:
-          ARM_CLIENT_ID: ${{ fromJSON(secrets.AZURE_CREDENTIALS).clientId }}
-          ARM_CLIENT_SECRET: ${{ fromJSON(secrets.AZURE_CREDENTIALS).clientSecret }}
-          ARM_SUBSCRIPTION_ID: ${{ fromJSON(secrets.AZURE_CREDENTIALS).subscriptionId }}
-          ARM_TENANT_ID: ${{ fromJSON(secrets.AZURE_CREDENTIALS).tenantId }}
-        run: terraform apply -auto-approve
+        working-directory: .
+        # Add TF_VAR_* secrets here if your code needs them (examples below)
+        # env:
+        #   TF_VAR_admin_password: ${{ secrets.TF_VAR_admin_password }}
+        #   TF_VAR_ssh_public_key: ${{ secrets.TF_VAR_ssh_public_key }}
+        run: terraform apply -auto-approve -input=false
